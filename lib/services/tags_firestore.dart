@@ -18,17 +18,20 @@ class Tags {
 class FirestoreService {
   final CollectionReference tags = FirebaseFirestore.instance.collection('tags');
 
-  Future <void> addTag(List<String> tagList) async {
-    await tags.add(Tags(tagList: tagList).toMap());
+  Future <void> addTag(List<String> tagList){
+    return tags.add(Tags(tagList: tagList).toMap());
   }
 
-  Future <void> updateTag(String tagID, List<String> newTagList) {
-    tags.doc(tagID).delete();
-    return tags.add(Tags(tagList: newTagList).toMap());
+  Future <void> updateTag(String tagID, List<String> newTagList){
+    return tags.doc(tagID).update(Tags(tagList: newTagList).toMap());
   }
 
   Future <void> deleteTag(String tagID) {
     return tags.doc(tagID).delete();
+  }
+
+  Stream<QuerySnapshot> getTagsStream() {
+    return tags.orderBy('tag_list', descending: true).snapshots();
   }
 }
 /*
