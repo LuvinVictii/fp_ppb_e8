@@ -1,11 +1,37 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'lib/services/notes_firestore.dart';
+
+class Tags {
+  List<String> tagList;
+
+  Tags({required this.tagList});
+
+  Map<String, dynamic> toMap() {
+    return {
+      'tag_list': tagList,
+    };
+  }
+}
+
+
 
 class FirestoreService {
-  final CollectionReference notes =
-      FirebaseFirestore.instance.collection('notes');
-  final CollectionReference tags =
-      FirebaseFirestore.instance.collection('tags');
+  final CollectionReference tags = FirebaseFirestore.instance.collection('tags');
 
+  Future <void> addTag(List<String> tagList) async {
+    await tags.add(Tags(tagList: tagList).toMap());
+  }
+
+  Future <void> updateTag(String tagID, List<String> newTagList) {
+    tags.doc(tagID).delete();
+    return tags.add(Tags(tagList: newTagList).toMap());
+  }
+
+  Future <void> deleteTag(String tagID) {
+    return tags.doc(tagID).delete();
+  }
+}
+/*
   Future<void> addNoteWithTags(String note, List<String> tagsList) async {
     DocumentReference noteRef = await notes.add({
       'note': note,
@@ -28,12 +54,13 @@ class FirestoreService {
     }
   }
 
-  Future<void> updateNoteWithTags(
-      String docID, String newNote, List<String> newTagsList) async {
-    await notes.doc(docID).update({
-      'note': newNote,
-      'timestamp': Timestamp.now(),
-    });
+  Future <void> updateNoteWithTags(String docID, String newNote, List<String> newTagsList) async {
+    await notes.doc(docID).update(
+        {
+          'note': newNote,
+          'timestamp': Timestamp.now(),
+        }
+    );
     QuerySnapshot oldTags = await tags.where('noteId', isEqualTo: docID).get();
     for (QueryDocumentSnapshot doc in oldTags.docs) {
       await doc.reference.delete();
@@ -47,12 +74,12 @@ class FirestoreService {
     }
   }
 
-  Future<void> updateTagsToNote(String docID, List<String> newTagsList) async {
+    Future <void> updateTagsToNote(String docID, List<String> newTagsList) async {
     QuerySnapshot oldTags = await tags.where('noteId', isEqualTo: docID).get();
     for (QueryDocumentSnapshot doc in oldTags.docs) {
       await doc.reference.delete();
     }
-
+    
     for (String tag in newTagsList) {
       await tags.add({
         'noteId': docID,
@@ -70,10 +97,8 @@ class FirestoreService {
     }
   }
 
-  Future<void> deleteTagsFromNote(
-      String docID, List<String> newTagsList) async {
-    QuerySnapshot oldTagsSnapshot =
-        await tags.where('noteId', isEqualTo: docID).get();
+  Future<void> deleteTagsFromNote(String docID, List<String> newTagsList) async {
+    QuerySnapshot oldTagsSnapshot = await tags.where('noteId', isEqualTo: docID).get();
     for (var doc in oldTagsSnapshot.docs) {
       String oldTag = doc['tag'];
       if (newTagsList.contains(oldTag)) {
@@ -83,8 +108,8 @@ class FirestoreService {
   }
 
   Future<List<String>> getTagsForNoteId(String noteId) async {
-    QuerySnapshot tagSnapshot =
-        await tags.where('noteId', isEqualTo: noteId).get();
+    QuerySnapshot tagSnapshot = await tags.where('noteId', isEqualTo: noteId).get();
     return tagSnapshot.docs.map((doc) => doc['tag'] as String).toList();
   }
 }
+*/
