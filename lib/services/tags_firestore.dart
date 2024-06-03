@@ -15,7 +15,7 @@ class Tags {
 
 
 
-class FirestoreService {
+class TagService {
   final CollectionReference tags = FirebaseFirestore.instance.collection('tags');
 
   Future <void> addTag(List<String> tagList){
@@ -82,7 +82,7 @@ class FirestoreService {
     for (QueryDocumentSnapshot doc in oldTags.docs) {
       await doc.reference.delete();
     }
-    
+
     for (String tag in newTagsList) {
       await tags.add({
         'noteId': docID,
