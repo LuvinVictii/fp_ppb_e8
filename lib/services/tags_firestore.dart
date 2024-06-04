@@ -2,16 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'lib/services/notes_firestore.dart';
 
 class Tags {
-  List<String> tagList;
+  final List<String> tagList;
 
   Tags({required this.tagList});
 
   Map<String, dynamic> toMap() {
     return {
-      'tag_list': tagList,
+      'tag_list': tagList.map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList(),
     };
   }
 }
+
 
 
 
@@ -33,6 +34,42 @@ class TagService {
   Stream<QuerySnapshot> getTagsStream() {
     return tags.orderBy('tag_list', descending: true).snapshots();
   }
+
+  Future<QuerySnapshot> getByTags(List<String> searchedTags) async {
+    return tags.where('tag_list', arrayContainsAny: searchedTags).get();
+  }
+  // Future<List<QueryDocumentSnapshot<Object?>>> getByTags(List<String> searchedTags) async {
+  //   QuerySnapshot<Object?> currentTags =
+  //   await tags.where('tag_list', arrayContainsAny: searchedTags).get();
+  //   QuerySnapshot<Object?>  filteredTags;
+  //   for (var tag in currentTags.docs) {
+  //     bool containsAllTags = true;
+  //     for (var searchedTag in searchedTags) {
+  //       if (!tag['tag_list'].contains(searchedTag)) {
+  //         containsAllTags = false;
+  //         break;
+  //       }
+  //     }
+  //     if (containsAllTags) {
+  //       filteredTags.add(tag);
+  //     }
+  //   }
+  //   return filteredTags;
+  // }
+
+
+
+
+
+  // Future<List<String>> getIDByTags(List<String> searchedTags) async {
+  //   List<String> tagIDs = [];
+  //   QuerySnapshot querySnapshot = await tags.where('tag_list', arrayContainsAny: searchedTags).get();
+  //   for (var doc in querySnapshot.docs) {
+  //     tagIDs.add(doc.id);
+  //   }
+  //   return tagIDs;
+  // }
+
 }
 /*
   Future<void> addNoteWithTags(String note, List<String> tagsList) async {
