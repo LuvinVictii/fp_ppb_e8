@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:fp_ppb_e8/services/tags_firestore.dart';
+import 'package:fp_ppb_e8/components/tags/card.dart';
 
 class TagListPage extends StatefulWidget {
   const TagListPage({super.key});
@@ -12,6 +13,10 @@ class TagListPage extends StatefulWidget {
 class _TagListPageState extends State<TagListPage> {
   final TagService firestoreService = TagService();
   final TextEditingController textController = TextEditingController();
+  final TextEditingController searchController = TextEditingController();
+  String titleTag = "Tags";
+
+  List<DocumentSnapshot> searchResults = [];
 
   void openTagBox({String? docID, List<String>? initialTags}) {
     if (initialTags != null) {
@@ -30,7 +35,7 @@ class _TagListPageState extends State<TagListPage> {
         actions: [
           ElevatedButton(
               onPressed: () {
-                List<String> tags = textController.text.split(',').map((tag) => tag.trim()).toList();
+                List<String> tags = textController.text.split(',');
 
                 if (docID == null) {
                   firestoreService.addTag(tags);
@@ -47,11 +52,21 @@ class _TagListPageState extends State<TagListPage> {
     );
   }
 
+  void searchTags() async {
+    List<String> searchedTags = searchController.text.split(',').map((tag) => tag.trim()).toList();
+    QuerySnapshot querySnapshot = await firestoreService.getByTags(searchedTags);
+
+    setState(() {
+      searchResults = querySnapshot.docs;
+      titleTag = "Searching: ${searchController.text}";
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Tags"),
+        title: Text(titleTag),
         backgroundColor: Colors.lightBlue,
       ),
       floatingActionButton: FloatingActionButton(
@@ -59,43 +74,101 @@ class _TagListPageState extends State<TagListPage> {
         backgroundColor: Colors.lightBlue,
         child: const Icon(Icons.add),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: firestoreService.getTagsStream(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            List<DocumentSnapshot> tagsList = snapshot.data!.docs;
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Search tags',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: searchTags,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: searchResults.isNotEmpty
+                ? ListView.builder(
+              itemCount: searchResults.length,
+              itemBuilder: (context, index) {
+                DocumentSnapshot document = searchResults[index];
+                String docID = document.id;
 
-            return ListView.builder(
-                itemCount: tagsList.length,
-                itemBuilder: (context, index) {
-                  DocumentSnapshot document = tagsList[index];
-                  String docID = document.id;
+                Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+                List<dynamic> tagList = data['tag_list'];
+                String tagText = tagList.join(', ');
 
-                  Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-                  List<dynamic> tagList = data['tag_list'];
-                  String tagText = tagList.join(', ');
-
-                  return ListTile(
-                    title: Text(tagText),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: () => openTagBox(docID: docID, initialTags: List<String>.from(tagList)),
-                          icon: const Icon(Icons.settings),
-                        ),
-                        IconButton(
-                          onPressed: () => firestoreService.deleteTag(docID),
-                          icon: const Icon(Icons.delete),
-                        ),
-                      ],
+                return ListTile(
+                  title: Flexible(
+                    child: Wrap(
+                      children: tagList.map((tagChild) => TagData(tagChild)).toList(),
                     ),
-                  );
-                });
-          } else {
-            return const Center(child: Text("No tags available"));
-          }
-        },
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () => openTagBox(docID: docID, initialTags: List<String>.from(tagList)),
+                        icon: const Icon(Icons.settings),
+                      ),
+                      IconButton(
+                        onPressed: () => firestoreService.deleteTag(docID),
+                        icon: const Icon(Icons.delete),
+                      ),
+
+                    ],
+                  ),
+                );
+              },
+            )
+                :
+            StreamBuilder<QuerySnapshot>(
+              stream: firestoreService.getTagsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  List<DocumentSnapshot> tagsList = snapshot.data!.docs;
+
+                  return ListView.builder(
+                      itemCount: tagsList.length,
+                      itemBuilder: (context, index) {
+                        DocumentSnapshot document = tagsList[index];
+                        String docID = document.id;
+
+                        Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+                        List<dynamic> tagList = data['tag_list'];
+                        String tagText = tagList.join(', ');
+
+                        return ListTile(
+                          title: Flexible(
+                            child: Wrap(
+                              children: tagList.map((tagChild) => TagData(tagChild)).toList(),
+                            ),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                onPressed: () => openTagBox(docID: docID, initialTags: List<String>.from(tagList)),
+                                icon: const Icon(Icons.settings),
+                              ),
+                              IconButton(
+                                onPressed: () => firestoreService.deleteTag(docID),
+                                icon: const Icon(Icons.delete),
+                              ),
+                            ],
+                          ),
+                        );
+                      });
+                } else {
+                  return const Center(child: Text("No tags available"));
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
