@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:fp_ppb_e8/service/notes_firestore.dart';
+import 'package:fp_ppb_e8/services/notes_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:fp_ppb_e8/pages/groups/groups_list.dart';
 import 'package:fp_ppb_e8/pages/tags/tags_list.dart';
@@ -49,7 +49,8 @@ class _NotesListPageState extends State<NotesListPage> {
               ),
               TextField(
                 controller: tagsController,
-                decoration: InputDecoration(labelText: "Tags (comma separated)"),
+                decoration:
+                    InputDecoration(labelText: "Tags (comma separated)"),
               ),
               TextField(
                 controller: groupController,
@@ -61,7 +62,10 @@ class _NotesListPageState extends State<NotesListPage> {
         actions: [
           ElevatedButton(
             onPressed: () {
-              List<String> tags = tagsController.text.split(',').map((tag) => tag.trim()).toList();
+              List<String> tags = tagsController.text
+                  .split(',')
+                  .map((tag) => tag.trim())
+                  .toList();
 
               if (docID == null) {
                 firestoreService.addNote(
@@ -167,7 +171,8 @@ class _NotesListPageState extends State<NotesListPage> {
                 DocumentSnapshot document = notesList[index];
                 String docID = document.id;
 
-                Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+                Map<String, dynamic> data =
+                    document.data() as Map<String, dynamic>;
                 String noteTitle = data['note_title'];
                 String noteContent = data['note_content'];
                 List<dynamic> noteTags = data['note_tags'];
