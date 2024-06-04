@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fp_ppb_e8/service/notes_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:fp_ppb_e8/pages/groups/groups_list.dart';
+import 'package:fp_ppb_e8/pages/tags/tags_list.dart';
 
 class NotesListPage extends StatefulWidget {
   const NotesListPage({super.key});
@@ -98,6 +100,55 @@ class _NotesListPageState extends State<NotesListPage> {
       appBar: AppBar(
         title: Text("Notes"),
         backgroundColor: Colors.lightBlue,
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
+        ),
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.lightBlue,
+              ),
+              child: Text(
+                'Menu',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              title: Text('Groups'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => GroupListPage()),
+                );
+              },
+            ),
+            ListTile(
+              title: Text('Tags'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TagListPage()),
+                );
+              },
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => openNoteBox(),
@@ -171,6 +222,32 @@ class _NotesListPageState extends State<NotesListPage> {
           }
         },
       ),
+
+      // bottomNavigationBar: BottomAppBar(
+      //   child: Row(
+      //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      //     children: [
+      //       ElevatedButton(
+      //         onPressed: () {
+      //           Navigator.push(
+      //             context,
+      //             MaterialPageRoute(builder: (context) => GroupListPage()),
+      //           );
+      //         },
+      //         child: Text("Group List"),
+      //       ),
+      //       ElevatedButton(
+      //         onPressed: () {
+      //           Navigator.push(
+      //             context,
+      //             MaterialPageRoute(builder: (context) => TagListPage()),
+      //           );
+      //         },
+      //         child: Text("Tag List"),
+      //       ),
+      //     ],
+      //   ),
+      // ),
     );
   }
 }
