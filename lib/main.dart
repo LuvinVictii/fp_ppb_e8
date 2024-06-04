@@ -1,9 +1,7 @@
-import 'package:fp_ppb_e8/pages/groups/groups_list.dart';
-import 'package:fp_ppb_e8/pages/tags/tags_list.dart';
+import 'package:fp_ppb_e8/pages/notes/notes_list.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -20,7 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: TagListPage(),
+      home: NotesListPage(),
     );
   }
 }
