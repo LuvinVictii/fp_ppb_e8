@@ -18,26 +18,75 @@ class Tags {
 
 class TagService {
   final CollectionReference tags = FirebaseFirestore.instance.collection('tags');
+  final CollectionReference noteTags = FirebaseFirestore.instance.collection('note_tags');
 
-  Future <void> addTag(List<String> tagList){
-    return tags.add(Tags(tagList: tagList).toMap());
+  Future<void> addTag(String noteID, List<String> tagList) async {
+    for (var tagName in tagList) {
+      // Check if the tag already exists
+      QuerySnapshot querySnapshot = await tags.where('tag_name', isEqualTo: tagName).get();
+      String tagID;
+
+      if (querySnapshot.docs.isEmpty) {
+        // Add the tag if it doesn't exist and get the new tagID
+        DocumentReference docRef = await tags.add({'tag_name': tagName});
+        tagID = docRef.id;
+      } else {
+        // Get the existing tagID
+        tagID = querySnapshot.docs.first.id;
+      }
+
+      // Add to note_tags
+      await noteTags.add({
+        'nt_note_id': noteID,
+        'nt_tags_id': tagID
+      });
+    }
   }
 
-  Future <void> updateTag(String tagID, List<String> newTagList){
-    return tags.doc(tagID).update(Tags(tagList: newTagList).toMap());
+  Future<void> updateTag(String noteID, List<String> newTagList) async {
+    // Remove existing tags for the note
+    QuerySnapshot noteTagSnapshot = await noteTags.where('nt_note_id', isEqualTo: noteID).get();
+    for (var doc in noteTagSnapshot.docs) {
+      await noteTags.doc(doc.id).delete();
+    }
+
+    // Add new tags
+    await addTag(noteID, newTagList);
   }
 
-  Future <void> deleteTag(String tagID) {
-    return tags.doc(tagID).delete();
+  Future<void> deleteTag(String noteID, String tagID) async {
+    // Remove the specific tag for the note
+    QuerySnapshot querySnapshot = await noteTags
+        .where('nt_note_id', isEqualTo: noteID)
+        .where('nt_tags_id', isEqualTo: tagID)
+        .get();
+
+    for (var doc in querySnapshot.docs) {
+      await noteTags.doc(doc.id).delete();
+    }
+  }
+
+  Stream<QuerySnapshot> getNoteTagsStream(String? noteID) {
+    note_tags = noteTags.where('nt_note_id', noteID);
+    for (var tags in note_tags){
+      tags.where(id == tags[nt_tags_id])
+      return tags['tags_name']
+    }
   }
 
   Stream<QuerySnapshot> getTagsStream() {
-    return tags.orderBy('tag_list', descending: true).snapshots();
+    return tags.snapshots();
   }
 
   Future<QuerySnapshot> getByTags(List<String> searchedTags) async {
-    return tags.where('tag_list', arrayContainsAny: searchedTags).get();
+    return tags.where('tag_name', whereIn: searchedTags).get();
   }
+}
+
+
+  // Future<QuerySnapshot> getByTags(List<String> searchedTags) async {
+  //   return tags.where('tag_list', arrayContainsAny: searchedTags).get();
+  // }
   // Future<List<QueryDocumentSnapshot<Object?>>> getByTags(List<String> searchedTags) async {
   //   QuerySnapshot<Object?> currentTags =
   //   await tags.where('tag_list', arrayContainsAny: searchedTags).get();
@@ -70,7 +119,7 @@ class TagService {
   //   return tagIDs;
   // }
 
-}
+// }
 /*
   Future<void> addNoteWithTags(String note, List<String> tagsList) async {
     DocumentReference noteRef = await notes.add({
