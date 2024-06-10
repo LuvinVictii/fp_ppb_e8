@@ -36,6 +36,7 @@ class _LoginPageState extends State<LoginPage> {
         password: passwordController.text,
       );
       // pop the loading circle
+      if(!mounted)return;
       Navigator.pop(context);
 
       Navigator.push(

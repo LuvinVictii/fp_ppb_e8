@@ -11,7 +11,7 @@ class NotesService {
     DocumentReference docRef = await notes.add({
       'note_title': title,
       'note_content': content,
-      'note_tags': tags,
+      // 'note_tags': tags,
       'note_group': group,
       'timestamp': Timestamp.now(),
     });
@@ -25,7 +25,7 @@ class NotesService {
     await notes.doc(docID).update({
       'note_title': title,
       'note_content': content,
-      'note_tags': tags,
+      // 'note_tags': tags,
       'note_group': group,
       'timestamp': Timestamp.now(),
     });

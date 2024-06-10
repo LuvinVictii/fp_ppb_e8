@@ -66,23 +66,23 @@ class TagService {
     }
   }
 
-  Stream<List<String>> getNoteTagsStream(String? noteID) {
-    return noteTags
+  Future<List<String>> getNoteTagsStream(String? noteID) async {
+    var snapshot = await noteTags
         .where('nt_note_id', isEqualTo: noteID)
-        .snapshots()
-        .asyncMap((snapshot) async {
-      List<String> tagNames = [];
-      for (var doc in snapshot.docs) {
-        String tagID = doc['nt_tags_id'];
-        DocumentSnapshot tagSnapshot = await tags.doc(tagID).get();
-        if (tagSnapshot.exists) {
-          String tagName = tagSnapshot['tag_name'];
-          tagNames.add(tagName);
-        }
+        .get();
+
+    List<String> tagNames = [];
+    for (var doc in snapshot.docs) {
+      String tagID = doc['nt_tags_id'];
+      DocumentSnapshot tagSnapshot = await tags.doc(tagID).get();
+      if (tagSnapshot.exists) {
+        tagNames.add(tagSnapshot['tag_name']);
       }
-      return tagNames;
-    });
+    }
+    return tagNames;
   }
+
+
 
 
 
