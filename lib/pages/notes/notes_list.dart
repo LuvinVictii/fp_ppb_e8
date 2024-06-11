@@ -67,15 +67,15 @@ class _NotesListPageState extends State<NotesListPage> {
     }
   }
 
-  // Future<void> fetchTags() async {
-  //   QuerySnapshot tagSnapshot = await firestoreTagsService.tags.get();
-  //   setState(() {
-  //     tagItems = tagSnapshot.docs.map((doc) {
-  //       Map<String, dynamic> tagData = doc.data() as Map<String, dynamic>;
-  //       return MultiSelectItem<String>(tagData['tag'], tagData['tag']);
-  //     }).toList();
-  //   });
-  // }
+  Future<void> fetchTags() async {
+    QuerySnapshot tagSnapshot = await firestoreTagsService.tags.get();
+    setState(() {
+      tagItems = tagSnapshot.docs.map((doc) {
+        Map<String, dynamic> tagData = doc.data() as Map<String, dynamic>;
+        return MultiSelectItem<String>(tagData['tag'], tagData['tag']);
+      }).toList();
+    });
+  }
 
   void openNoteBox({String? docID}) async {
     await fetchUserGroups();
