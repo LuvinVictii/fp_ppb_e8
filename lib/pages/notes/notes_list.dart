@@ -26,6 +26,7 @@ class _NotesListPageState extends State<NotesListPage> {
 
   User? currentUser;
   List<String> userGroups = [];
+  List<String> groupsUser = [];
   List<MultiSelectItem<String>> tagItems = [];
   List<String> selectedTags = [];
 
@@ -34,13 +35,14 @@ class _NotesListPageState extends State<NotesListPage> {
     super.initState();
     currentUser = FirebaseAuth.instance.currentUser;
     fetchUserGroups();
-    fetchTags();
+    fetchGroupsUser();
+    // fetchTags();
   }
 
   Future<void> fetchUserGroups() async {
     if (currentUser != null) {
       QuerySnapshot groupSnapshot = await firestoreGroupService.groups
-          .where('members', arrayContains: currentUser!.uid)
+          .where('createdBy', isEqualTo: currentUser!.uid)
           .get();
       setState(() {
         userGroups = groupSnapshot.docs.map((doc) {
@@ -51,23 +53,40 @@ class _NotesListPageState extends State<NotesListPage> {
     }
   }
 
-  Future<void> fetchTags() async {
-    QuerySnapshot tagSnapshot = await firestoreTagsService.tags.get();
-    setState(() {
-      tagItems = tagSnapshot.docs.map((doc) {
-        Map<String, dynamic> tagData = doc.data() as Map<String, dynamic>;
-        return MultiSelectItem<String>(tagData['tag'], tagData['tag']);
-      }).toList();
-    });
+  Future<void> fetchGroupsUser() async {
+    if (currentUser != null) {
+      QuerySnapshot groupSnapshot = await firestoreGroupService.groups
+          .where('members', arrayContains: currentUser!.uid)
+          .get();
+      setState(() {
+        groupsUser = groupSnapshot.docs.map((doc) {
+          Map<String, dynamic> dataGroup = doc.data() as Map<String, dynamic>;
+          return dataGroup['group'].toString();
+        }).toList();
+      });
+    }
   }
 
+  // Future<void> fetchTags() async {
+  //   QuerySnapshot tagSnapshot = await firestoreTagsService.tags.get();
+  //   setState(() {
+  //     tagItems = tagSnapshot.docs.map((doc) {
+  //       Map<String, dynamic> tagData = doc.data() as Map<String, dynamic>;
+  //       return MultiSelectItem<String>(tagData['tag'], tagData['tag']);
+  //     }).toList();
+  //   });
+  // }
+
   void openNoteBox({String? docID}) async {
+    await fetchUserGroups();
+    await fetchGroupsUser();
+
     if (docID != null) {
       DocumentSnapshot document = await firestoreService.notes.doc(docID).get();
       if (document.exists) {
         Map<String, dynamic> data = document.data() as Map<String, dynamic>;
         List<String>? noteTags =
-        await firestoreTagsService.getNoteTagsStream(docID);
+            await firestoreTagsService.getNoteTagsStream(docID);
         titleController.text = data['note_title'];
         contentController.text = data['note_content'];
         selectedTags = noteTags;
@@ -85,7 +104,7 @@ class _NotesListPageState extends State<NotesListPage> {
       builder: (context) {
         return AlertDialog(
           shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -244,12 +263,18 @@ class _NotesListPageState extends State<NotesListPage> {
         backgroundColor: Colors.deepPurple,
         child: const Icon(Icons.add),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: firestoreService.getUserNotesStream(
-            currentUser?.uid ?? '', userGroups),
+      body: StreamBuilder<List<QueryDocumentSnapshot>>(
+        stream: firestoreService.getUserAndGroupNotesStream(
+            currentUser?.uid ?? '', groupsUser),
         builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            List<DocumentSnapshot> userNotes = snapshot.data!.docs;
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return const Center(child: Text("Error loading notes"));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("No notes found"));
+          } else {
+            List<DocumentSnapshot> userNotes = snapshot.data!;
 
             return ListView.builder(
               padding: const EdgeInsets.all(12),
@@ -259,9 +284,10 @@ class _NotesListPageState extends State<NotesListPage> {
                 String docID = document.id;
 
                 Map<String, dynamic> data =
-                document.data() as Map<String, dynamic>;
+                    document.data() as Map<String, dynamic>;
                 String noteTitle = data['note_title'];
                 String noteContent = data['note_content'];
+                String noteCreatedBy = data['created_by'];
 
                 return FutureBuilder<List<String>>(
                   future: firestoreTagsService.getNoteTagsStream(document.id),
@@ -274,7 +300,7 @@ class _NotesListPageState extends State<NotesListPage> {
                     } else {
                       List<String> noteTags = tagSnapshot.data ?? [];
                       List<String> noteGroups =
-                      List<String>.from(data['note_groups'] ?? []);
+                          List<String>.from(data['note_groups'] ?? []);
 
                       return Card(
                         shape: RoundedRectangleBorder(
@@ -289,26 +315,29 @@ class _NotesListPageState extends State<NotesListPage> {
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(noteContent),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                onPressed: () => openNoteBox(docID: docID),
-                                icon: const Icon(
-                                  Icons.edit,
-                                  color: Colors.deepPurple,
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () =>
-                                    firestoreService.deleteNote(docID),
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
-                                ),
-                              ),
-                            ],
-                          ),
+                          trailing: currentUser!.uid == noteCreatedBy
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      onPressed: () =>
+                                          openNoteBox(docID: docID),
+                                      icon: const Icon(
+                                        Icons.edit,
+                                        color: Colors.deepPurple,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () =>
+                                          firestoreService.deleteNote(docID),
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : null,
                           onTap: () {
                             showDialog(
                               context: context,
@@ -348,8 +377,6 @@ class _NotesListPageState extends State<NotesListPage> {
                 );
               },
             );
-          } else {
-            return const Center(child: Text("No notes found"));
           }
         },
       ),

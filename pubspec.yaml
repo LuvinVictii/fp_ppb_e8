@@ -12,6 +12,7 @@ dependencies:
   cloud_firestore:
   flutter_multiselect: ^1.0.0
   multi_select_flutter: ^4.0.0
+  rxdart:
   flutter:
     sdk: flutter
 

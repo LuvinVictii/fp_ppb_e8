@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:fp_ppb_e8/services/tags_firestore.dart';
 
 class NotesService {
@@ -62,5 +63,30 @@ class NotesService {
 
   Stream<QuerySnapshot> getGroupNotesStream(List<String> userGroups) {
     return notes.where('note_groups', arrayContainsAny: userGroups).snapshots();
+  }
+
+  Stream<List<QueryDocumentSnapshot>> getUserAndGroupNotesStream(
+      String userID, List<String> userGroups) {
+    Stream<QuerySnapshot> userNotesStream =
+        getUserNotesStream(userID, userGroups);
+
+    if (userGroups.isEmpty) {
+      return userNotesStream.map((userNotes) => userNotes.docs);
+    }
+    Stream<QuerySnapshot> groupNotesStream = getGroupNotesStream(userGroups);
+
+    return Rx.combineLatest2(userNotesStream, groupNotesStream,
+        (userNotes, groupNotes) {
+      final allNotes = <QueryDocumentSnapshot>{};
+
+      // Add user notes
+      allNotes.addAll(userNotes.docs);
+
+      // Add group notes, avoiding duplicates
+      allNotes.addAll(groupNotes.docs
+          .where((groupNote) => groupNote['created_by'] != userID));
+
+      return allNotes.toList();
+    });
   }
 }
