@@ -7,15 +7,24 @@ class GroupService {
   final CollectionReference users =
       FirebaseFirestore.instance.collection('users');
 
-  Future<void> addGroup(String group) {
+  Future<void> addGroup(String group) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      return groups.add({
-        'group': group,
-        'timestamp': Timestamp.now(),
-        'createdBy': user.uid,
-        'members': [user.uid],
-      });
+      // Check if the group already exists
+      QuerySnapshot querySnapshot =
+          await groups.where('group', isEqualTo: group).get();
+      if (querySnapshot.docs.isNotEmpty) {
+        // If a group with the same name exists, throw an error
+        throw Exception("Group with the same name already exists");
+      } else {
+        // If the group does not exist, add it to Firestore
+        await groups.add({
+          'group': group,
+          'timestamp': Timestamp.now(),
+          'createdBy': user.uid,
+          'members': [user.uid],
+        });
+      }
     } else {
       throw Exception("No user logged in");
     }
