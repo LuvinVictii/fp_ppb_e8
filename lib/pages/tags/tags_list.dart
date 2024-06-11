@@ -36,9 +36,9 @@ class _TagListPageState extends State<TagListPage> {
           ElevatedButton(
               onPressed: () {
                 List<String> tags = textController.text.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
-
+                // String newTags = textController.text;
                 if (docID == null) {
-                  firestoreService.addTag('dummyNoteID', tags); // Replace 'dummyNoteID' with actual note ID
+                  firestoreService.addTag(tags); // Replace 'dummyNoteID' with actual note ID
                 } else {
                   firestoreService.updateTag(docID, tags);
                 }
@@ -99,9 +99,11 @@ class _TagListPageState extends State<TagListPage> {
 
                 Map<String, dynamic> data = document.data() as Map<String, dynamic>;
                 String tagName = data['tag_name'];
+                String tagUser = data['createdBy'];
 
                 return ListTile(
                   title: Text(tagName),
+                  subtitle: Text(tagUser),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -132,9 +134,11 @@ class _TagListPageState extends State<TagListPage> {
 
                       Map<String, dynamic> data = document.data() as Map<String, dynamic>;
                       String tagName = data['tag_name'];
+                      String tagUser = data['createdBy'];
 
                       return ListTile(
                         title: Text(tagName),
+                        subtitle: Text(tagUser),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

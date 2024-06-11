@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'lib/services/notes_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Tags {
   final List<String> tagList;
@@ -18,51 +19,44 @@ class Tags {
 
 class TagService {
   final CollectionReference tags = FirebaseFirestore.instance.collection('tags');
+  final CollectionReference users = FirebaseFirestore.instance.collection('users');
   final CollectionReference noteTags = FirebaseFirestore.instance.collection('note_tags');
 
-  Future<void> addTag(String noteID, List<String> tagList) async {
-    for (var tagName in tagList) {
-      // Check if the tag already exists
-      QuerySnapshot querySnapshot = await tags.where('tag_name', isEqualTo: tagName).get();
-      String tagID;
-
-      if (querySnapshot.docs.isEmpty) {
-        // Add the tag if it doesn't exist and get the new tagID
-        DocumentReference docRef = await tags.add({'tag_name': tagName});
-        tagID = docRef.id;
-      } else {
-        // Get the existing tagID
-        tagID = querySnapshot.docs.first.id;
+  Future<void> addTag(List<String> tagList) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // Check if the group already exists
+      for (var tagName in tagList) {
+        await tags.add({
+          'tag_name': tagName,
+          'timestamp': Timestamp.now(),
+          'createdBy': user.uid,
+        });
       }
 
-      // Add to note_tags
-      await noteTags.add({
-        'nt_note_id': noteID,
-        'nt_tags_id': tagID
-      });
+    } else {
+      throw Exception("No user logged in");
     }
   }
 
-  Future<void> updateTag(String noteID, List<String> newTagList) async {
-    // Remove existing tags for the note
-    QuerySnapshot noteTagSnapshot = await noteTags.where('nt_note_id', isEqualTo: noteID).get();
-    for (var doc in noteTagSnapshot.docs) {
-      await noteTags.doc(doc.id).delete();
+  Future<void> updateTag(String docID, List<String> newTags) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      return newTags.forEach((newTag) async {
+        await tags.doc(docID).update({
+          'tag_name': newTag,
+          'timestamp': Timestamp.now(),
+        });
+      });
+    } else {
+      throw Exception("No user logged in");
     }
-
-    // Add new tags
-    await addTag(noteID, newTagList);
   }
 
   Future<void> deleteTag(String tagID) async {
-    // Remove the specific tag for the note
     return await tags
         .doc(tagID)
         .delete();
-
-    // for (var doc in querySnapshot.docs) {
-    //   await noteTags.doc(doc.id).delete();
-    // }
   }
 
   Future<List<String>> getNoteTagsStream(String? noteID) async {
@@ -86,8 +80,14 @@ class TagService {
 
 
   Stream<QuerySnapshot> getTagsStream() {
-    return tags.snapshots();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      return tags.where('createdBy', isEqualTo: user.uid).snapshots();
+    } else {
+      throw Exception("No user logged in");
+    }
   }
+
 
   Future<QuerySnapshot> getByTags(List<String> searchedTags) async {
     return tags.where('tag_name', whereIn: searchedTags).get();

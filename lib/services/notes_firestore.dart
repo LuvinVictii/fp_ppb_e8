@@ -21,7 +21,7 @@ class NotesService {
       });
 
       // Add tags to note
-      await tagService.addTag(docRef.id, tags);
+      await tagService.addTag(tags);
     } else {
       throw Exception("No user logged in");
     }
