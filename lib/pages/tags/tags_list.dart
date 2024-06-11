@@ -110,7 +110,7 @@ class _TagListPageState extends State<TagListPage> {
                         icon: const Icon(Icons.settings),
                       ),
                       IconButton(
-                        onPressed: () => firestoreService.deleteTag('dummyNoteID', docID), // Replace 'dummyNoteID' with actual note ID
+                        onPressed: () => firestoreService.deleteTag(docID), // Replace 'dummyNoteID' with actual note ID
                         icon: const Icon(Icons.delete),
                       ),
                     ],
@@ -143,7 +143,7 @@ class _TagListPageState extends State<TagListPage> {
                               icon: const Icon(Icons.settings),
                             ),
                             IconButton(
-                              onPressed: () => firestoreService.deleteTag('dummyNoteID', docID), // Replace 'dummyNoteID' with actual note ID
+                              onPressed: () => firestoreService.deleteTag(docID), // Replace 'dummyNoteID' with actual note ID
                               icon: const Icon(Icons.delete),
                             ),
                           ],

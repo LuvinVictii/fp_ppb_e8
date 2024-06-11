@@ -54,16 +54,15 @@ class TagService {
     await addTag(noteID, newTagList);
   }
 
-  Future<void> deleteTag(String noteID, String tagID) async {
+  Future<void> deleteTag(String tagID) async {
     // Remove the specific tag for the note
-    QuerySnapshot querySnapshot = await noteTags
-        .where('nt_note_id', isEqualTo: noteID)
-        .where('nt_tags_id', isEqualTo: tagID)
-        .get();
+    return await tags
+        .doc(tagID)
+        .delete();
 
-    for (var doc in querySnapshot.docs) {
-      await noteTags.doc(doc.id).delete();
-    }
+    // for (var doc in querySnapshot.docs) {
+    //   await noteTags.doc(doc.id).delete();
+    // }
   }
 
   Future<List<String>> getNoteTagsStream(String? noteID) async {

@@ -49,11 +49,11 @@ class NotesService {
     await notes.doc(docID).delete();
 
     // Delete all tags associated with the note
-    QuerySnapshot noteTagsSnapshot =
-        await tagService.noteTags.where('nt_note_id', isEqualTo: docID).get();
-    for (var doc in noteTagsSnapshot.docs) {
-      await tagService.noteTags.doc(doc.id).delete();
-    }
+    // QuerySnapshot noteTagsSnapshot =
+    //     await tagService.noteTags.where('nt_note_id', isEqualTo: docID).get();
+    // for (var doc in noteTagsSnapshot.docs) {
+    //   await tagService.noteTags.doc(doc.id).delete();
+    // }
   }
 
   Stream<QuerySnapshot> getUserNotesStream(
