@@ -17,6 +17,21 @@ class _TagListPageState extends State<TagListPage> {
   String pageTitle = "Tags List";
 
   List<DocumentSnapshot> searchResults = [];
+  List<DocumentSnapshot> allTags = [];
+  bool isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAllTags();
+  }
+
+  void fetchAllTags() async {
+    QuerySnapshot querySnapshot = await firestoreService.getTagsStream().first;
+    setState(() {
+      allTags = querySnapshot.docs;
+    });
+  }
 
   void openTagBox({String? docID, List<String>? initialTags}) {
     if (initialTags != null) {
@@ -36,15 +51,15 @@ class _TagListPageState extends State<TagListPage> {
           ElevatedButton(
               onPressed: () {
                 List<String> tags = textController.text.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
-                // String newTags = textController.text;
                 if (docID == null) {
-                  firestoreService.addTag(tags); // Replace 'dummyNoteID' with actual note ID
+                  firestoreService.addTag(tags);
                 } else {
                   firestoreService.updateTag(docID, tags);
                 }
 
                 textController.clear();
                 Navigator.pop(context);
+                fetchAllTags();
               },
               child: const Text("Save"))
         ],
@@ -52,13 +67,16 @@ class _TagListPageState extends State<TagListPage> {
     );
   }
 
-  void searchTags() async {
-    List<String> searchedTags = searchController.text.split(',').map((tag) => tag.trim()).toList();
-    QuerySnapshot querySnapshot = await firestoreService.getByTags(searchedTags);
-
+  void searchTags() {
+    String searchText = searchController.text.trim().toLowerCase();
     setState(() {
-      searchResults = querySnapshot.docs;
-      pageTitle = searchController.text.isNotEmpty ? "Searching: ${searchController.text}" : "Tags List";
+      isSearching = searchText.isNotEmpty;
+      searchResults = allTags.where((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        String tagName = data['tag_name'].toLowerCase();
+        return tagName.contains(searchText);
+      }).toList();
+      pageTitle = "Tags List";
     });
   }
 
@@ -90,7 +108,7 @@ class _TagListPageState extends State<TagListPage> {
             ),
           ),
           Expanded(
-            child: searchResults.isNotEmpty
+            child: isSearching
                 ? ListView.builder(
               itemCount: searchResults.length,
               itemBuilder: (context, index) {
@@ -112,7 +130,7 @@ class _TagListPageState extends State<TagListPage> {
                         icon: const Icon(Icons.settings),
                       ),
                       IconButton(
-                        onPressed: () => firestoreService.deleteTag(docID), // Replace 'dummyNoteID' with actual note ID
+                        onPressed: () => firestoreService.deleteTag(docID),
                         icon: const Icon(Icons.delete),
                       ),
                     ],
@@ -147,7 +165,7 @@ class _TagListPageState extends State<TagListPage> {
                               icon: const Icon(Icons.settings),
                             ),
                             IconButton(
-                              onPressed: () => firestoreService.deleteTag(docID), // Replace 'dummyNoteID' with actual note ID
+                              onPressed: () => firestoreService.deleteTag(docID),
                               icon: const Icon(Icons.delete),
                             ),
                           ],
