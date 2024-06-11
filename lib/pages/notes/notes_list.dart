@@ -22,17 +22,19 @@ class _NotesListPageState extends State<NotesListPage> {
 
   final TextEditingController titleController = TextEditingController();
   final TextEditingController contentController = TextEditingController();
-  final TextEditingController tagsController = TextEditingController();
   final TextEditingController groupController = TextEditingController();
 
   User? currentUser;
   List<String> userGroups = [];
+  List<MultiSelectItem<String>> tagItems = [];
+  List<String> selectedTags = [];
 
   @override
   void initState() {
     super.initState();
     currentUser = FirebaseAuth.instance.currentUser;
     fetchUserGroups();
+    fetchTags();
   }
 
   Future<void> fetchUserGroups() async {
@@ -49,22 +51,32 @@ class _NotesListPageState extends State<NotesListPage> {
     }
   }
 
+  Future<void> fetchTags() async {
+    QuerySnapshot tagSnapshot = await firestoreTagsService.tags.get();
+    setState(() {
+      tagItems = tagSnapshot.docs.map((doc) {
+        Map<String, dynamic> tagData = doc.data() as Map<String, dynamic>;
+        return MultiSelectItem<String>(tagData['tag'], tagData['tag']);
+      }).toList();
+    });
+  }
+
   void openNoteBox({String? docID}) async {
     if (docID != null) {
       DocumentSnapshot document = await firestoreService.notes.doc(docID).get();
       if (document.exists) {
         Map<String, dynamic> data = document.data() as Map<String, dynamic>;
         List<String>? noteTags =
-            await firestoreTagsService.getNoteTagsStream(docID);
+        await firestoreTagsService.getNoteTagsStream(docID);
         titleController.text = data['note_title'];
         contentController.text = data['note_content'];
-        tagsController.text = noteTags.join(', ');
+        selectedTags = noteTags;
         groupController.text = data['note_groups'].join(', ');
       }
     } else {
       titleController.clear();
       contentController.clear();
-      tagsController.clear();
+      selectedTags.clear();
       groupController.clear();
     }
 
@@ -73,7 +85,7 @@ class _NotesListPageState extends State<NotesListPage> {
       builder: (context) {
         return AlertDialog(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -97,13 +109,14 @@ class _NotesListPageState extends State<NotesListPage> {
                   maxLines: 5,
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: tagsController,
-                  decoration: InputDecoration(
-                    labelText: "Tags (comma separated)",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
+                MultiSelectDialogField(
+                  items: tagItems,
+                  initialValue: selectedTags,
+                  title: const Text("Tags"),
+                  selectedColor: Colors.deepPurple,
+                  onConfirm: (results) {
+                    selectedTags = results.cast<String>();
+                  },
                 ),
                 const SizedBox(height: 12),
                 MultiSelectDialogField(
@@ -131,10 +144,6 @@ class _NotesListPageState extends State<NotesListPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                List<String> tags = tagsController.text
-                    .split(',')
-                    .map((tag) => tag.trim())
-                    .toList();
                 List<String> groups = groupController.text
                     .split(',')
                     .map((group) => group.trim())
@@ -144,7 +153,7 @@ class _NotesListPageState extends State<NotesListPage> {
                   firestoreService.addNote(
                     titleController.text,
                     contentController.text,
-                    tags,
+                    selectedTags,
                     groups,
                   );
                 } else {
@@ -152,14 +161,14 @@ class _NotesListPageState extends State<NotesListPage> {
                     docID,
                     titleController.text,
                     contentController.text,
-                    tags,
+                    selectedTags,
                     groups,
                   );
                 }
 
                 titleController.clear();
                 contentController.clear();
-                tagsController.clear();
+                selectedTags.clear();
                 groupController.clear();
 
                 Navigator.pop(context);
@@ -178,6 +187,17 @@ class _NotesListPageState extends State<NotesListPage> {
       appBar: AppBar(
         title: const Text("Notes"),
         backgroundColor: Colors.deepPurple,
+        // Three-stripe button to open the drawer
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
+        ),
       ),
       drawer: Drawer(
         child: ListView(
@@ -239,7 +259,7 @@ class _NotesListPageState extends State<NotesListPage> {
                 String docID = document.id;
 
                 Map<String, dynamic> data =
-                    document.data() as Map<String, dynamic>;
+                document.data() as Map<String, dynamic>;
                 String noteTitle = data['note_title'];
                 String noteContent = data['note_content'];
 
@@ -254,7 +274,7 @@ class _NotesListPageState extends State<NotesListPage> {
                     } else {
                       List<String> noteTags = tagSnapshot.data ?? [];
                       List<String> noteGroups =
-                          List<String>.from(data['note_groups'] ?? []);
+                      List<String>.from(data['note_groups'] ?? []);
 
                       return Card(
                         shape: RoundedRectangleBorder(
