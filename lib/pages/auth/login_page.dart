@@ -2,7 +2,7 @@ import 'package:fp_ppb_e8/pages/auth/register_page.dart';
 import 'package:fp_ppb_e8/pages/notes/notes_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fp_ppb_e8/components/auth/login_button.dart';
+// import 'package:fp_ppb_e8/components/auth/login_button.dart';
 import 'package:fp_ppb_e8/components/auth/text_field.dart';
 
 class LoginPage extends StatefulWidget {
@@ -13,15 +13,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // text editing controllers
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  // sign user in method
   void signUserIn() async {
-    // show loading circle
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         return const Center(
           child: CircularProgressIndicator(),
@@ -29,67 +27,41 @@ class _LoginPageState extends State<LoginPage> {
       },
     );
 
-    // try sign in
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text,
       );
-      // pop the loading circle
-      if(!mounted)return;
+      if (!mounted) return;
       Navigator.pop(context);
-
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const NotesListPage(),
-          ));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const NotesListPage(),
+        ),
+      );
     } on FirebaseAuthException catch (e) {
-      // pop the loading circle
       Navigator.pop(context);
-      // WRONG EMAIL
       if (e.code == 'user-not-found') {
-        // show error to user
-        wrongEmailMessage();
-      }
-
-      // WRONG PASSWORD
-      else if (e.code == 'wrong-password') {
-        // show error to user
-        wrongPasswordMessage();
+        showMessage('Incorrect Email');
+      } else if (e.code == 'wrong-password') {
+        showMessage('Incorrect Password');
+      } else {
+        showMessage('An error occurred. Please try again later.');
       }
     }
   }
 
-  // wrong email message popup
-  void wrongEmailMessage() {
+  void showMessage(String message) {
     showDialog(
       context: context,
       builder: (context) {
-        return const AlertDialog(
+        return AlertDialog(
           backgroundColor: Colors.deepPurple,
           title: Center(
             child: Text(
-              'Incorrect Email',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // wrong password message popup
-  void wrongPasswordMessage() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return const AlertDialog(
-          backgroundColor: Colors.deepPurple,
-          title: Center(
-            child: Text(
-              'Incorrect Password',
-              style: TextStyle(color: Colors.white),
+              message,
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         );
@@ -100,101 +72,90 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[300],
+      backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: Center(
-          child: ListView(
-            children: [
-              const SizedBox(height: 50),
-
-              // logo
-              const Icon(
-                Icons.lock,
-                size: 100,
-              ),
-
-              const SizedBox(height: 50),
-
-              // welcome back, you've been missed!
-              Text(
-                'Welcome back you\'ve been missed!',
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 16,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 50),
+                const Icon(
+                  Icons.lock_outline,
+                  size: 100,
+                  color: Colors.deepPurple,
                 ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 25),
-
-              // email textfield
-              MyTextField(
-                controller: emailController,
-                hintText: 'Email',
-                obscureText: false,
-              ),
-
-              const SizedBox(height: 10),
-
-              // password textfield
-              MyTextField(
-                controller: passwordController,
-                hintText: 'Password',
-                obscureText: true,
-              ),
-
-              const SizedBox(height: 10),
-
-              // forgot password?
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                const SizedBox(height: 50),
+                Text(
+                  'Welcome back, you\'ve been missed!',
+                  style: TextStyle(
+                    color: Colors.grey[800],
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 25),
+                MyTextField(
+                  controller: emailController,
+                  hintText: 'Email',
+                  obscureText: false,
+                ),
+                const SizedBox(height: 15),
+                MyTextField(
+                  controller: passwordController,
+                  hintText: 'Password',
+                  obscureText: true,
+                ),
+                const SizedBox(height: 10),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 25.0),
+                ),
+                const SizedBox(height: 25),
+                ElevatedButton(
+                  onPressed: signUserIn,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text(
+                    'Sign In',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ),
+                const SizedBox(height: 50),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Forgot Password?',
-                      style: TextStyle(color: Colors.grey[600]),
+                      'Not a member?',
+                      style: TextStyle(color: Colors.grey[800]),
+                    ),
+                    const SizedBox(width: 4),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RegisterPage(),
+                        ),
+                      ),
+                      child: const Text(
+                        'Register now',
+                        style: TextStyle(
+                          color: Colors.deepPurple,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // sign in button
-              LoginButton(
-                onTap: signUserIn,
-              ),
-
-              const SizedBox(height: 50),
-
-              // not a member? register now
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Not a member?',
-                    style: TextStyle(color: Colors.grey[700]),
-                  ),
-                  const SizedBox(width: 4),
-                  TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const RegisterPage(),
-                      ),
-                    ),
-                    child: const Text(
-                      'Register now',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  )
-                ],
-              )
-            ],
+              ],
+            ),
           ),
         ),
       ),
