@@ -80,16 +80,16 @@ class _NotesListPageState extends State<NotesListPage> {
   void openNoteBox({String? docID}) async {
     await fetchUserGroups();
     await fetchGroupsUser();
+    // Fetch tags from Firestore and convert them to a list of strings
+    List<String>? noteTags = await firestoreTagsService.getTagsListString();
 
     if (docID != null) {
       DocumentSnapshot document = await firestoreService.notes.doc(docID).get();
       if (document.exists) {
         Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-        List<String>? noteTags =
-            await firestoreTagsService.getNoteTagsStream(docID);
         titleController.text = data['note_title'];
         contentController.text = data['note_content'];
-        selectedTags = noteTags;
+        selectedTags = List<String>.from(data['note_tags'] ?? []);
         groupController.text = data['note_groups'].join(', ');
       }
     } else {
@@ -103,8 +103,7 @@ class _NotesListPageState extends State<NotesListPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -113,8 +112,7 @@ class _NotesListPageState extends State<NotesListPage> {
                   controller: titleController,
                   decoration: InputDecoration(
                     labelText: "Title",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -122,35 +120,33 @@ class _NotesListPageState extends State<NotesListPage> {
                   controller: contentController,
                   decoration: InputDecoration(
                     labelText: "Content",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   maxLines: 5,
                 ),
                 const SizedBox(height: 12),
+                // Multi-select field for tags
                 MultiSelectDialogField(
-                  items: tagItems,
+                  items: noteTags.map((tag) => MultiSelectItem<String>(tag, tag)).toList(),
                   initialValue: selectedTags,
                   title: const Text("Tags"),
                   selectedColor: Colors.deepPurple,
                   onConfirm: (results) {
-                    selectedTags = results.cast<String>();
+                    setState(() {
+                      selectedTags = results.cast<String>();
+                    });
                   },
                 ),
                 const SizedBox(height: 12),
                 MultiSelectDialogField(
-                  items: userGroups
-                      .map((group) => MultiSelectItem(group, group))
-                      .toList(),
-                  initialValue: groupController.text
-                      .split(',')
-                      .map((e) => e.trim())
-                      .toList(),
+                  items: userGroups.map((group) => MultiSelectItem<String>(group, group)).toList(),
+                  initialValue: groupController.text.split(',').map((e) => e.trim()).toList(),
                   title: const Text("Groups"),
                   selectedColor: Colors.deepPurple,
                   onConfirm: (results) {
-                    groupController.text =
-                        results.map((e) => e.toString()).join(', ');
+                    setState(() {
+                      groupController.text = results.map((e) => e.toString()).join(', ');
+                    });
                   },
                 ),
               ],
@@ -163,10 +159,7 @@ class _NotesListPageState extends State<NotesListPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                List<String> groups = groupController.text
-                    .split(',')
-                    .map((group) => group.trim())
-                    .toList();
+                List<String> groups = groupController.text.split(',').map((group) => group.trim()).toList();
 
                 if (docID == null) {
                   firestoreService.addNote(
@@ -199,6 +192,7 @@ class _NotesListPageState extends State<NotesListPage> {
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -287,6 +281,7 @@ class _NotesListPageState extends State<NotesListPage> {
                     document.data() as Map<String, dynamic>;
                 String noteTitle = data['note_title'];
                 String noteContent = data['note_content'];
+                // String notetags = data['note_content'];
                 String noteCreatedBy = data['created_by'];
 
                 return FutureBuilder<List<String>>(
@@ -298,7 +293,9 @@ class _NotesListPageState extends State<NotesListPage> {
                         child: CircularProgressIndicator(),
                       );
                     } else {
-                      List<String> noteTags = tagSnapshot.data ?? [];
+                      // List<String> noteTags = tagSnapshot.data ?? [];
+                      List<String> noteTags =
+                          List<String>.from(data['note_tags'] ?? []);
                       List<String> noteGroups =
                           List<String>.from(data['note_groups'] ?? []);
 

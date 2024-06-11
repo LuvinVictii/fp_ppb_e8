@@ -89,6 +89,19 @@ class TagService {
   }
 
 
+
+  Future<List<String>> getTagsListString() async{
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      QuerySnapshot snapshot = await tags.where('createdBy', isEqualTo: user.uid).get();
+      List<String> tagNames = snapshot.docs.map((doc) => doc['tag_name'] as String).toList();
+      return tagNames;
+    } else {
+      throw Exception("No user logged in");
+    }
+
+  }
+
   Future<QuerySnapshot> getByTags(List<String> searchedTags) async {
     return tags.where('tag_name', whereIn: searchedTags).get();
   }

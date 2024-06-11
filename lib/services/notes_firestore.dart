@@ -16,6 +16,7 @@ class NotesService {
         'note_title': title,
         'note_content': content,
         'note_groups': groups,
+        'note_tags': tags,
         'created_by': user.uid,
         'timestamp': Timestamp.now(),
       });
@@ -35,6 +36,7 @@ class NotesService {
         'note_title': title,
         'note_content': content,
         'note_groups': groups,
+        'note_tags':tags,
         'timestamp': Timestamp.now(),
       });
 
