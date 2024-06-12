@@ -13,6 +13,7 @@ class NotesListPage extends StatefulWidget {
 
   @override
   State<NotesListPage> createState() => _NotesListPageState();
+
 }
 
 class _NotesListPageState extends State<NotesListPage> {
@@ -23,12 +24,15 @@ class _NotesListPageState extends State<NotesListPage> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController contentController = TextEditingController();
   final TextEditingController groupController = TextEditingController();
+  final TextEditingController searchController = TextEditingController();
 
   User? currentUser;
   List<String> userGroups = [];
   List<String> groupsUser = [];
   List<MultiSelectItem<String>> tagItems = [];
   List<String> selectedTags = [];
+  List<String> selectedGroups = [];
+  List<String> noteTags = [];
 
   @override
   void initState() {
@@ -36,8 +40,17 @@ class _NotesListPageState extends State<NotesListPage> {
     currentUser = FirebaseAuth.instance.currentUser;
     fetchUserGroups();
     fetchGroupsUser();
-    // fetchTags();
+    fetchTags();
   }
+
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //   currentUser = FirebaseAuth.instance.currentUser;
+  //   fetchUserGroups();
+  //   fetchGroupsUser();
+  //   fetchTags();
+  // }
 
   Future<void> fetchUserGroups() async {
     if (currentUser != null) {
@@ -68,20 +81,20 @@ class _NotesListPageState extends State<NotesListPage> {
   }
 
   Future<void> fetchTags() async {
-    QuerySnapshot tagSnapshot = await firestoreTagsService.tags.get();
-    setState(() {
-      tagItems = tagSnapshot.docs.map((doc) {
-        Map<String, dynamic> tagData = doc.data() as Map<String, dynamic>;
-        return MultiSelectItem<String>(tagData['tag'], tagData['tag']);
-      }).toList();
-    });
+    // QuerySnapshot tagSnapshot = await firestoreTagsService.tags.get();
+    List <String> temp = await firestoreTagsService.getTagsListString();
+    if (currentUser != null) {
+      setState((){
+        noteTags = temp;
+      });
+    }
   }
 
   void openNoteBox({String? docID}) async {
     await fetchUserGroups();
     await fetchGroupsUser();
-    // Fetch tags from Firestore and convert them to a list of strings
-    List<String>? noteTags = await firestoreTagsService.getTagsListString();
+    await fetchTags();
+
 
     if (docID != null) {
       DocumentSnapshot document = await firestoreService.notes.doc(docID).get();
@@ -125,7 +138,6 @@ class _NotesListPageState extends State<NotesListPage> {
                   maxLines: 5,
                 ),
                 const SizedBox(height: 12),
-                // Multi-select field for tags
                 MultiSelectDialogField(
                   items: noteTags.map((tag) => MultiSelectItem<String>(tag, tag)).toList(),
                   initialValue: selectedTags,
@@ -193,14 +205,12 @@ class _NotesListPageState extends State<NotesListPage> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Notes"),
         backgroundColor: Colors.deepPurple,
-        // Three-stripe button to open the drawer
         leading: Builder(
           builder: (BuildContext context) {
             return IconButton(
@@ -257,63 +267,154 @@ class _NotesListPageState extends State<NotesListPage> {
         backgroundColor: Colors.deepPurple,
         child: const Icon(Icons.add),
       ),
-      body: StreamBuilder<List<QueryDocumentSnapshot>>(
-        stream: firestoreService.getUserAndGroupNotesStream(
-            currentUser?.uid ?? '', groupsUser),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return const Center(child: Text("Error loading notes"));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No notes found"));
-          } else {
-            List<DocumentSnapshot> userNotes = snapshot.data!;
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: 'Search by title',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onChanged: (value) {
+                setState(() {});
+              },
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.0,vertical: 6.0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text("Filter by Tags"),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: MultiSelectDialogField(
+              items: noteTags.map((tag) => MultiSelectItem<String>(tag, tag)).toList(),
+              title: const Text("Filter by Tags"),
+              selectedColor: Colors.deepPurple,
+              onConfirm: (results) {
+                setState(() {
+                  selectedTags = results.cast<String>();
+                });
+              },
+              chipDisplay: MultiSelectChipDisplay(
+                onTap: (value) {
+                  setState(() {
+                    selectedTags.remove(value);
+                  });
+                },
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.0,vertical: 6.0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text("Filter by Groups"),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: MultiSelectDialogField(
+              items: userGroups.map((group) => MultiSelectItem<String>(group, group)).toList(),
+              title: const Text("Filter by Groups"),
+              selectedColor: Colors.deepPurple,
+              onConfirm: (results) {
+                setState(() {
+                  selectedGroups = results.cast<String>();
+                });
+              },
+              chipDisplay: MultiSelectChipDisplay(
+                onTap: (value) {
+                  setState(() {
+                    selectedGroups.remove(value);
+                  });
+                },
+              ),
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<List<QueryDocumentSnapshot>>(
+              stream: firestoreService.getUserAndGroupNotesStream(
+                  currentUser?.uid ?? '', groupsUser),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return const Center(child: Text("Error loading notes"));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text("No notes found"));
+                } else {
+                  List<DocumentSnapshot> userNotes = snapshot.data!;
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: userNotes.length,
-              itemBuilder: (context, index) {
-                DocumentSnapshot document = userNotes[index];
-                String docID = document.id;
+                  // Filter notes by search query
+                  userNotes = userNotes.where((doc) {
+                    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+                    String noteTitle = data['note_title'];
+                    return noteTitle.toLowerCase().contains(searchController.text.toLowerCase());
+                  }).toList();
 
-                Map<String, dynamic> data =
-                    document.data() as Map<String, dynamic>;
-                String noteTitle = data['note_title'];
-                String noteContent = data['note_content'];
-                // String notetags = data['note_content'];
-                String noteCreatedBy = data['created_by'];
+                  // Filter notes by selected tags and groups
+                  if (selectedTags.isNotEmpty) {
+                    userNotes = userNotes.where((doc) {
+                      List<String> noteTags = List<String>.from((doc.data() as Map<String, dynamic>)['note_tags'] ?? []);
+                      return selectedTags.any((tag) => noteTags.contains(tag));
+                    }).toList();
+                  }
 
-                return FutureBuilder<List<String>>(
-                  future: firestoreTagsService.getNoteTagsStream(document.id),
-                  builder: (context, tagSnapshot) {
-                    if (tagSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    } else {
-                      // List<String> noteTags = tagSnapshot.data ?? [];
-                      List<String> noteTags =
-                          List<String>.from(data['note_tags'] ?? []);
-                      List<String> noteGroups =
-                          List<String>.from(data['note_groups'] ?? []);
+                  if (selectedGroups.isNotEmpty) {
+                    userNotes = userNotes.where((doc) {
+                      List<String> noteGroups = List<String>.from((doc.data() as Map<String, dynamic>)['note_groups'] ?? []);
+                      return selectedGroups.any((group) => noteGroups.contains(group));
+                    }).toList();
+                  }
 
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        elevation: 4,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(12),
-                          title: Text(
-                            noteTitle,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(noteContent),
-                          trailing: currentUser!.uid == noteCreatedBy
-                              ? Row(
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: userNotes.length,
+                    itemBuilder: (context, index) {
+                      DocumentSnapshot document = userNotes[index];
+                      String docID = document.id;
+
+                      Map<String, dynamic> data =
+                      document.data() as Map<String, dynamic>;
+                      String noteTitle = data['note_title'];
+                      String noteContent = data['note_content'];
+                      String noteCreatedBy = data['created_by'];
+
+                      return FutureBuilder<List<String>>(
+                        future: firestoreTagsService.getNoteTagsStream(document.id),
+                        builder: (context, tagSnapshot) {
+                          if (tagSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          } else {
+                            List<String> noteTags =
+                            List<String>.from(data['note_tags'] ?? []);
+                            List<String> noteGroups =
+                            List<String>.from(data['note_groups'] ?? []);
+
+                            return Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              elevation: 4,
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(12),
+                                title: Text(
+                                  noteTitle,
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Text(noteContent),
+                                trailing: currentUser!.uid == noteCreatedBy
+                                    ? Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
@@ -334,48 +435,51 @@ class _NotesListPageState extends State<NotesListPage> {
                                     ),
                                   ],
                                 )
-                              : null,
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                title: Text(
-                                  noteTitle,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                content: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text("Content: $noteContent"),
-                                    const SizedBox(height: 8),
-                                    Text("Tags: ${noteTags.join(', ')}"),
-                                    const SizedBox(height: 8),
-                                    Text("Groups: ${noteGroups.join(', ')}"),
-                                  ],
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text("Close"),
-                                  ),
-                                ],
+                                    : null,
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      title: Text(
+                                        noteTitle,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      content: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text("Content: $noteContent"),
+                                          const SizedBox(height: 8),
+                                          Text("Tags: ${noteTags.join(', ')}"),
+                                          const SizedBox(height: 8),
+                                          Text("Groups: ${noteGroups.join(', ')}"),
+                                        ],
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text("Close"),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               ),
                             );
-                          },
-                        ),
+                          }
+                        },
                       );
-                    }
-                  },
-                );
+                    },
+                  );
+                }
               },
-            );
-          }
-        },
+            ),
+          ),
+        ],
       ),
     );
   }

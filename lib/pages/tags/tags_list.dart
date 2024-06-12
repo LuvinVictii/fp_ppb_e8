@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:fp_ppb_e8/services/tags_firestore.dart';
-import 'package:fp_ppb_e8/components/tags/card.dart';
 
 class TagListPage extends StatefulWidget {
   const TagListPage({Key? key}) : super(key: key);
@@ -80,106 +79,83 @@ class _TagListPageState extends State<TagListPage> {
     });
   }
 
+  Widget buildTagList(List<DocumentSnapshot> tagsList) {
+    return ListView.builder(
+      itemCount: tagsList.length,
+      itemBuilder: (context, index) {
+        DocumentSnapshot document = tagsList[index];
+        String docID = document.id;
+
+        Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+        String tagName = data['tag_name'];
+        String tagUser = data['createdBy'];
+
+        return ListTile(
+          title: Text(tagName),
+          subtitle: Text(tagUser),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: () => openTagBox(docID: docID, initialTags: [tagName]),
+                icon: const Icon(Icons.settings),
+              ),
+              IconButton(
+                onPressed: () => firestoreService.deleteTag(docID),
+                icon: const Icon(Icons.delete),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(pageTitle),
-        backgroundColor: Colors.lightBlue,
+        backgroundColor: Colors.deepPurple,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => openTagBox(),
-        backgroundColor: Colors.lightBlue,
+        backgroundColor: Colors.deepPurple,
         child: const Icon(Icons.add),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                hintText: 'Search tags',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: searchTags,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search tags',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.search),
+                    onPressed: searchTags,
+                  ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: isSearching
-                ? ListView.builder(
-              itemCount: searchResults.length,
-              itemBuilder: (context, index) {
-                DocumentSnapshot document = searchResults[index];
-                String docID = document.id;
-
-                Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-                String tagName = data['tag_name'];
-                String tagUser = data['createdBy'];
-
-                return ListTile(
-                  title: Text(tagName),
-                  subtitle: Text(tagUser),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        onPressed: () => openTagBox(docID: docID, initialTags: [tagName]),
-                        icon: const Icon(Icons.settings),
-                      ),
-                      IconButton(
-                        onPressed: () => firestoreService.deleteTag(docID),
-                        icon: const Icon(Icons.delete),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            )
-                : StreamBuilder<QuerySnapshot>(
-              stream: firestoreService.getTagsStream(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  List<DocumentSnapshot> tagsList = snapshot.data!.docs;
-
-                  return ListView.builder(
-                    itemCount: tagsList.length,
-                    itemBuilder: (context, index) {
-                      DocumentSnapshot document = tagsList[index];
-                      String docID = document.id;
-
-                      Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-                      String tagName = data['tag_name'];
-                      String tagUser = data['createdBy'];
-
-                      return ListTile(
-                        title: Text(tagName),
-                        subtitle: Text(tagUser),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: () => openTagBox(docID: docID, initialTags: [tagName]),
-                              icon: const Icon(Icons.settings),
-                            ),
-                            IconButton(
-                              onPressed: () => firestoreService.deleteTag(docID),
-                              icon: const Icon(Icons.delete),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                } else {
-                  return const Center(child: CircularProgressIndicator());
-                }
-              },
+            Container(
+              height: MediaQuery.of(context).size.height - kToolbarHeight - 80, // Adjust this value as needed
+              child: isSearching
+                  ? buildTagList(searchResults)
+                  : StreamBuilder<QuerySnapshot>(
+                stream: firestoreService.getTagsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return buildTagList(snapshot.data!.docs);
+                  } else {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

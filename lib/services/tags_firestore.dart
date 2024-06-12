@@ -42,16 +42,17 @@ class TagService {
   Future<void> updateTag(String docID, List<String> newTags) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      return newTags.forEach((newTag) async {
+      for (String newTag in newTags) {
         await tags.doc(docID).update({
           'tag_name': newTag,
           'timestamp': Timestamp.now(),
         });
-      });
+      }
     } else {
       throw Exception("No user logged in");
     }
   }
+
 
   Future<void> deleteTag(String tagID) async {
     return await tags
