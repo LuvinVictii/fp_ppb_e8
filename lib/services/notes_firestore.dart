@@ -12,7 +12,7 @@ class NotesService {
       List<String> groups) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      DocumentReference docRef = await notes.add({
+      await notes.add({
         'note_title': title,
         'note_content': content,
         'note_groups': groups,
@@ -41,7 +41,7 @@ class NotesService {
       });
 
       // Update tags for note
-      await tagService.updateTag(docID, tags);
+      await tagService.addTag(tags);
     } else {
       throw Exception("No user logged in");
     }

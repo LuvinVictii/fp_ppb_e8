@@ -3,7 +3,26 @@ import 'package:flutter/material.dart';
 import 'package:fp_ppb_e8/services/tags_firestore.dart';
 
 class TagListPage extends StatefulWidget {
-  const TagListPage({Key? key}) : super(key: key);
+  final Color mainBackgroundColor;
+  final Color mainAppBarBackgroundColor;
+  final Color mainAppBarTextColor;
+  final Color mainIconColor;
+  final Color dialogBackgroundColor;
+  final Color dialogTextColor;
+  final Color loadingIndicatorColor;
+  final Color listItemBackgroundColor;
+
+  const TagListPage({
+    Key? key,
+    required this.mainBackgroundColor,
+    required this.mainAppBarBackgroundColor,
+    required this.mainAppBarTextColor,
+    required this.mainIconColor,
+    required this.dialogBackgroundColor,
+    required this.dialogTextColor,
+    required this.loadingIndicatorColor,
+    required this.listItemBackgroundColor,
+  }) : super(key: key);
 
   @override
   State<TagListPage> createState() => _TagListPageState();
@@ -42,25 +61,38 @@ class _TagListPageState extends State<TagListPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: widget.dialogBackgroundColor,
+        title: Text(
+          docID == null ? 'Add Tag' : 'Edit Tag',
+          style: TextStyle(color: widget.dialogTextColor),
+        ),
         content: TextField(
           controller: textController,
-          decoration: const InputDecoration(hintText: 'Enter tags separated by commas'),
+          style: TextStyle(color: widget.dialogTextColor),
+          decoration: InputDecoration(
+            hintText: 'Enter tags separated by commas',
+            hintStyle: TextStyle(color: widget.dialogTextColor),
+          ),
         ),
         actions: [
           ElevatedButton(
-              onPressed: () {
+            onPressed: () {
+              if (docID == null) {
                 List<String> tags = textController.text.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
-                if (docID == null) {
-                  firestoreService.addTag(tags);
-                } else {
-                  firestoreService.updateTag(docID, tags);
-                }
+                firestoreService.addTag(tags);
+              } else {
+                firestoreService.updateTag(docID, textController.text);
+              }
 
-                textController.clear();
-                Navigator.pop(context);
-                fetchAllTags();
-              },
-              child: const Text("Save"))
+              textController.clear();
+              Navigator.pop(context);
+              fetchAllTags();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.mainIconColor,
+            ),
+            child: Text("Save", style: TextStyle(color: widget.dialogTextColor)),
+          ),
         ],
       ),
     );
@@ -88,39 +120,45 @@ class _TagListPageState extends State<TagListPage> {
 
         Map<String, dynamic> data = document.data() as Map<String, dynamic>;
         String tagName = data['tag_name'];
-        String tagUser = data['createdBy'];
+        String tagUser = data['createdByEmail'];
 
-        return ListTile(
-          title: Text(tagName),
-          subtitle: Text(tagUser),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                onPressed: () => openTagBox(docID: docID, initialTags: [tagName]),
-                icon: const Icon(Icons.settings),
-              ),
-              IconButton(
-                onPressed: () => firestoreService.deleteTag(docID),
-                icon: const Icon(Icons.delete),
-              ),
-            ],
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          child: ListTile(
+            tileColor: widget.dialogBackgroundColor,
+            title: Text(tagName, style: TextStyle(fontWeight: FontWeight.bold,color: widget.dialogTextColor)),
+            subtitle: Text(tagUser, style: TextStyle(color: widget.dialogTextColor)),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: () => openTagBox(docID: docID, initialTags: [tagName]),
+                  icon: Icon(Icons.edit, color: widget.mainIconColor),
+                ),
+                IconButton(
+                  onPressed: () => firestoreService.deleteTag(docID),
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: widget.mainBackgroundColor,
       appBar: AppBar(
-        title: Text(pageTitle),
-        backgroundColor: Colors.deepPurple,
+        title: Text(pageTitle, style: TextStyle(color: widget.mainAppBarTextColor)),
+        backgroundColor: widget.mainAppBarBackgroundColor,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => openTagBox(),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: widget.mainIconColor,
         child: const Icon(Icons.add),
       ),
       body: SingleChildScrollView(
@@ -132,15 +170,16 @@ class _TagListPageState extends State<TagListPage> {
                 controller: searchController,
                 decoration: InputDecoration(
                   hintText: 'Search tags',
+                  hintStyle: TextStyle(color: widget.mainAppBarBackgroundColor),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.search),
+                    icon: Icon(Icons.search, color: widget.mainIconColor),
                     onPressed: searchTags,
                   ),
                 ),
               ),
             ),
-            Container(
-              height: MediaQuery.of(context).size.height - kToolbarHeight - 80, // Adjust this value as needed
+            SizedBox(
+              height: MediaQuery.of(context).size.height - kToolbarHeight - 80,
               child: isSearching
                   ? buildTagList(searchResults)
                   : StreamBuilder<QuerySnapshot>(
@@ -149,7 +188,11 @@ class _TagListPageState extends State<TagListPage> {
                   if (snapshot.hasData) {
                     return buildTagList(snapshot.data!.docs);
                   } else {
-                    return const Center(child: CircularProgressIndicator());
+                    return Center(
+                      child: CircularProgressIndicator(
+                        color: widget.loadingIndicatorColor,
+                      ),
+                    );
                   }
                 },
               ),

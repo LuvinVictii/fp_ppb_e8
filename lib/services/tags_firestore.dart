@@ -31,6 +31,7 @@ class TagService {
           'tag_name': tagName,
           'timestamp': Timestamp.now(),
           'createdBy': user.uid,
+          'createdByEmail': user.email,
         });
       }
 
@@ -39,15 +40,13 @@ class TagService {
     }
   }
 
-  Future<void> updateTag(String docID, List<String> newTags) async {
+  Future<void> updateTag(String docID, String newTag) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      for (String newTag in newTags) {
         await tags.doc(docID).update({
           'tag_name': newTag,
           'timestamp': Timestamp.now(),
         });
-      }
     } else {
       throw Exception("No user logged in");
     }

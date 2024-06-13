@@ -4,7 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:fp_ppb_e8/services/groups_firestore.dart';
 
 class GroupListPage extends StatefulWidget {
-  const GroupListPage({Key? key}) : super(key: key);
+  final Color mainBackgroundColor;
+  final Color mainAppBarBackgroundColor;
+  final Color mainAppBarTextColor;
+  final Color mainIconColor;
+  final Color dialogBackgroundColor;
+  final Color dialogTextColor;
+  final Color loadingIndicatorColor;
+  final Color listItemBackgroundColor;
+
+  const GroupListPage({
+    Key? key,
+    required this.mainBackgroundColor,
+    required this.mainAppBarBackgroundColor,
+    required this.mainAppBarTextColor,
+    required this.mainIconColor,
+    required this.dialogBackgroundColor,
+    required this.dialogTextColor,
+    required this.loadingIndicatorColor,
+    required this.listItemBackgroundColor,
+  }) : super(key: key);
 
   @override
   State<GroupListPage> createState() => _GroupListPageState();
@@ -32,11 +51,16 @@ class _GroupListPageState extends State<GroupListPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(docID == null ? 'Add Group' : 'Edit Group'),
+        backgroundColor: widget.dialogBackgroundColor, // Set dialog background color
+        title: Text(
+          docID == null ? 'Add Group' : 'Edit Group',
+          style: TextStyle(color: widget.dialogTextColor), // Set dialog text color
+        ),
         content: TextField(
           controller: textController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'Enter group name',
+            hintStyle: TextStyle(color: widget.dialogTextColor), // Set
           ),
         ),
         actions: [
@@ -45,7 +69,7 @@ class _GroupListPageState extends State<GroupListPage> {
               Navigator.pop(context);
               textController.clear();
             },
-            child: const Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color: widget.dialogTextColor)), // Set button text color
           ),
           ElevatedButton(
             onPressed: () {
@@ -57,7 +81,10 @@ class _GroupListPageState extends State<GroupListPage> {
               textController.clear();
               Navigator.pop(context);
             },
-            child: Text(docID == null ? 'Add' : 'Update'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.mainIconColor, // Set button background color
+            ),
+            child: Text(docID == null ? 'Add' : 'Update', style: TextStyle(color: widget.dialogTextColor)), // Set button text color
           ),
         ],
       ),
@@ -67,16 +94,20 @@ class _GroupListPageState extends State<GroupListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: widget.mainBackgroundColor, // Set scaffold background color
       appBar: AppBar(
-        title: const Text("Groups"),
-        backgroundColor: Colors.deepPurple,
+        title: Text(
+          "Groups",
+          style: TextStyle(color: widget.mainAppBarTextColor), // Set app bar text color
+        ),
+        backgroundColor: widget.mainAppBarBackgroundColor, // Set app bar background color
       ),
       floatingActionButton: currentUser != null
           ? FloatingActionButton(
-              onPressed: openGroupBox,
-              backgroundColor: Colors.deepPurple,
-              child: const Icon(Icons.add),
-            )
+        onPressed: openGroupBox,
+        backgroundColor: widget.mainIconColor, // Set FAB background color
+        child: const Icon(Icons.add),
+      )
           : null,
       body: Column(
         children: [
@@ -91,10 +122,18 @@ class _GroupListPageState extends State<GroupListPage> {
                         filter = value.toLowerCase();
                       });
                     },
-                    decoration: const InputDecoration(
-                      labelText: 'Search',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: 'Search by title',
+                      labelStyle: TextStyle(color: widget.mainIconColor),
+                      prefixIcon: Icon(Icons.search, color: widget.mainIconColor),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: widget.mainIconColor), // Change border color here
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: widget.mainIconColor), // Change focused border color here
+                      ),
                     ),
                   ),
                 ),
@@ -106,6 +145,8 @@ class _GroupListPageState extends State<GroupListPage> {
                       selectedFilter = newValue!;
                     });
                   },
+                  style: TextStyle(color: widget.mainAppBarBackgroundColor), // Change text color
+                  dropdownColor: widget.mainBackgroundColor, // Change background color
                   items: filterOptions
                       .map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
@@ -141,7 +182,7 @@ class _GroupListPageState extends State<GroupListPage> {
                       String docID = document.id;
 
                       Map<String, dynamic> data =
-                          document.data() as Map<String, dynamic>;
+                      document.data() as Map<String, dynamic>;
                       String groupText = data['group'];
                       List<dynamic> members = data['members'] ?? [];
                       String createdBy = data['createdBy'];
@@ -150,17 +191,18 @@ class _GroupListPageState extends State<GroupListPage> {
                       bool isMember = members.contains(currentUser?.uid);
 
                       if ((filter.isEmpty ||
-                              groupText.toLowerCase().contains(filter)) &&
+                          groupText.toLowerCase().contains(filter)) &&
                           (selectedFilter == 'All' ||
                               (selectedFilter == 'Created by me' && isOwner) ||
                               (selectedFilter == 'Joined by me' && isMember) ||
                               (selectedFilter == 'Not a member' &&
                                   !isMember))) {
                         return Card(
+                          color: widget.listItemBackgroundColor, // Set card background color
                           margin: const EdgeInsets.symmetric(vertical: 8.0),
                           child: ListTile(
-                            title: Text(groupText),
-                            subtitle: Text('Members: ${members.length}'),
+                            title: Text(groupText, style: TextStyle(color: widget.dialogTextColor)), // Set button text color
+                            subtitle: Text('Members: ${members.length}', style: TextStyle(color: widget.dialogTextColor)), // Set button text color
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -169,8 +211,8 @@ class _GroupListPageState extends State<GroupListPage> {
                                     onPressed: () => openGroupBox(
                                         docID: docID,
                                         currentGroupName: groupText),
-                                    icon: const Icon(Icons.edit,
-                                        color: Colors.deepPurple),
+                                    icon: Icon(Icons.edit,
+                                        color: widget.mainIconColor), // Set icon color
                                   ),
                                   IconButton(
                                     onPressed: () =>
@@ -214,8 +256,10 @@ class _GroupListPageState extends State<GroupListPage> {
                   ),
                 );
               } else {
-                return const Center(
-                  child: CircularProgressIndicator(),
+                return Center(
+                  child: CircularProgressIndicator(
+                    color: widget.loadingIndicatorColor, // Set loading indicator color
+                  ),
                 );
               }
             },

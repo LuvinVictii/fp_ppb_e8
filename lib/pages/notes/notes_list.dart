@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:multi_select_flutter/multi_select_flutter.dart'; // Import the multi_select_flutter package
+import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'package:fp_ppb_e8/services/groups_firestore.dart';
 import 'package:fp_ppb_e8/services/notes_firestore.dart';
 import 'package:fp_ppb_e8/services/tags_firestore.dart';
@@ -17,6 +17,17 @@ class NotesListPage extends StatefulWidget {
 }
 
 class _NotesListPageState extends State<NotesListPage> {
+  Color mainBackgroundColor = Colors.white;
+  Color mainAppBarBackgroundColor = Colors.deepPurple;
+  Color mainAppBarTextColor = Colors.white;
+  Color mainIconColor = Colors.deepPurple;
+  Color dialogBackgroundColor = Colors.white;
+  Color dialogTextColor = Colors.black;
+  Color loadingIndicatorColor = Colors.deepPurple;
+  Color listItemBackgroundColor = Colors.white;
+
+  late bool isLightMode = true;
+
   final NotesService firestoreService = NotesService();
   final TagService firestoreTagsService = TagService();
   final GroupService firestoreGroupService = GroupService();
@@ -116,6 +127,10 @@ class _NotesListPageState extends State<NotesListPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: dialogBackgroundColor,
+          titleTextStyle: TextStyle(color: dialogTextColor),
+          contentTextStyle: TextStyle(color: dialogTextColor),
+          title: Text(docID == null ? 'Add Note' : 'Edit Note'),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: SingleChildScrollView(
             child: Column(
@@ -141,8 +156,19 @@ class _NotesListPageState extends State<NotesListPage> {
                 MultiSelectDialogField(
                   items: noteTags.map((tag) => MultiSelectItem<String>(tag, tag)).toList(),
                   initialValue: selectedTags,
-                  title: const Text("Tags"),
-                  selectedColor: Colors.deepPurple,
+                  title: Text(
+                    'Tags',
+                    style: TextStyle(
+                      color: mainAppBarBackgroundColor,
+                    ),
+                  ),
+                  selectedColor: mainAppBarBackgroundColor,
+                  unselectedColor: mainAppBarBackgroundColor,
+                  checkColor: mainAppBarBackgroundColor,
+                  backgroundColor: mainBackgroundColor,
+                  itemsTextStyle: TextStyle(
+                      color: mainAppBarBackgroundColor,
+                    ),
                   onConfirm: (results) {
                     setState(() {
                       selectedTags = results.cast<String>();
@@ -153,8 +179,18 @@ class _NotesListPageState extends State<NotesListPage> {
                 MultiSelectDialogField(
                   items: userGroups.map((group) => MultiSelectItem<String>(group, group)).toList(),
                   initialValue: groupController.text.split(',').map((e) => e.trim()).toList(),
-                  title: const Text("Groups"),
-                  selectedColor: Colors.deepPurple,
+                  title: Text("Groups",
+                          style: TextStyle(
+                          color: mainAppBarBackgroundColor,
+                        ),
+                      ),
+                  selectedColor: mainAppBarBackgroundColor,
+                  unselectedColor: mainAppBarBackgroundColor,
+                  checkColor: mainAppBarBackgroundColor,
+                  backgroundColor: mainBackgroundColor,
+                  itemsTextStyle: TextStyle(
+                    color: mainAppBarBackgroundColor,
+                  ),
                   onConfirm: (results) {
                     setState(() {
                       groupController.text = results.map((e) => e.toString()).join(', ');
@@ -167,7 +203,10 @@ class _NotesListPageState extends State<NotesListPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+              child: Text(
+                "Cancel",
+                style: TextStyle(color: dialogTextColor),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -197,7 +236,13 @@ class _NotesListPageState extends State<NotesListPage> {
 
                 Navigator.pop(context);
               },
-              child: const Text("Save"),
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all<Color>(mainBackgroundColor),
+              ),
+              child: Text(
+                "Save",
+                style: TextStyle(color: dialogTextColor),
+              ),
             ),
           ],
         );
@@ -205,16 +250,55 @@ class _NotesListPageState extends State<NotesListPage> {
     );
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: mainBackgroundColor,
       appBar: AppBar(
-        title: const Text("Notes"),
-        backgroundColor: Colors.deepPurple,
-        leading: Builder(
+        title: Text(
+          'Notes',
+          style: TextStyle(
+            color: mainAppBarTextColor,
+          ),
+        ),
+        backgroundColor: mainAppBarBackgroundColor,
+          actions: [
+            IconButton(
+            onPressed: () {
+              setState(() {
+              isLightMode = !isLightMode;
+              if (!isLightMode) {
+                mainBackgroundColor = Colors.grey.shade900;
+                mainAppBarBackgroundColor = const Color(0xFF8AB73A);
+                mainAppBarTextColor = Colors.grey.shade900;
+                mainIconColor = const Color(0xFF8AB73A);
+                dialogBackgroundColor = Colors.grey.shade800;
+                dialogTextColor = Colors.white;
+                loadingIndicatorColor = const Color(0xFF8AB73A);
+                listItemBackgroundColor = Colors.grey.shade800;
+              } else {
+                mainBackgroundColor = Colors.white;
+                mainAppBarBackgroundColor = Colors.deepPurple;
+                mainAppBarTextColor = Colors.white;
+                mainIconColor = Colors.deepPurple;
+                dialogBackgroundColor = Colors.white;
+                dialogTextColor = Colors.black;
+                loadingIndicatorColor = Colors.deepPurple;
+                listItemBackgroundColor = Colors.white;
+              }
+              });
+              },
+              icon: Icon(
+            isLightMode ? Icons.light_mode : Icons.dark_mode,
+            color: mainAppBarTextColor,
+          ),
+        )]
+        ,leading: Builder(
           builder: (BuildContext context) {
             return IconButton(
-              icon: const Icon(Icons.menu),
+              icon: Icon(Icons.menu, color: mainAppBarTextColor),
               onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
@@ -223,39 +307,71 @@ class _NotesListPageState extends State<NotesListPage> {
         ),
       ),
       drawer: Drawer(
+        backgroundColor: mainBackgroundColor,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
+            DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.deepPurple,
+                color: mainAppBarBackgroundColor,
               ),
               child: Text(
                 'Menu',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: mainAppBarTextColor,
                   fontSize: 24,
                 ),
               ),
             ),
             ListTile(
-              title: const Text('Groups'),
+              title: Text(
+                'Groups',
+                style: TextStyle(
+                  color: dialogTextColor,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const GroupListPage()),
+                    builder: (context) => GroupListPage(
+                      mainBackgroundColor: mainBackgroundColor,
+                      mainAppBarBackgroundColor: mainAppBarBackgroundColor,
+                      mainAppBarTextColor: mainAppBarTextColor,
+                      mainIconColor: mainIconColor,
+                      dialogBackgroundColor: dialogBackgroundColor,
+                      dialogTextColor: dialogTextColor,
+                      loadingIndicatorColor: loadingIndicatorColor,
+                      listItemBackgroundColor: listItemBackgroundColor,
+                    ),
+                  ),
                 );
               },
             ),
             ListTile(
-              title: const Text('Tags'),
+              title: Text(
+                'Tags',
+                style: TextStyle(
+                  color: dialogTextColor,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const TagListPage()),
+                  MaterialPageRoute(
+                    builder: (context) => TagListPage(
+                      mainBackgroundColor: mainBackgroundColor,
+                      mainAppBarBackgroundColor: mainAppBarBackgroundColor,
+                      mainAppBarTextColor: mainAppBarTextColor,
+                      mainIconColor: mainIconColor,
+                      dialogBackgroundColor: dialogBackgroundColor,
+                      dialogTextColor: dialogTextColor,
+                      loadingIndicatorColor: loadingIndicatorColor,
+                      listItemBackgroundColor: listItemBackgroundColor,
+                    ),
+                  ),
                 );
               },
             ),
@@ -264,77 +380,136 @@ class _NotesListPageState extends State<NotesListPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => openNoteBox(),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: mainAppBarBackgroundColor,
         child: const Icon(Icons.add),
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(12.0),
-            child: TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                labelText: 'Search by title',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onChanged: (value) {
-                setState(() {});
-              },
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.0,vertical: 6.0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Filter by Tags"),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: MultiSelectDialogField(
-              items: noteTags.map((tag) => MultiSelectItem<String>(tag, tag)).toList(),
-              title: const Text("Filter by Tags"),
-              selectedColor: Colors.deepPurple,
-              onConfirm: (results) {
-                setState(() {
-                  selectedTags = results.cast<String>();
-                });
-              },
-              chipDisplay: MultiSelectChipDisplay(
-                onTap: (value) {
-                  setState(() {
-                    selectedTags.remove(value);
-                  });
-                },
-              ),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.0,vertical: 6.0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Filter by Groups"),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: MultiSelectDialogField(
-              items: userGroups.map((group) => MultiSelectItem<String>(group, group)).toList(),
-              title: const Text("Filter by Groups"),
-              selectedColor: Colors.deepPurple,
-              onConfirm: (results) {
-                setState(() {
-                  selectedGroups = results.cast<String>();
-                });
-              },
-              chipDisplay: MultiSelectChipDisplay(
-                onTap: (value) {
-                  setState(() {
-                    selectedGroups.remove(value);
-                  });
-                },
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      labelText: 'Search by title',
+                      labelStyle: TextStyle(color: mainIconColor),
+                      prefixIcon: Icon(Icons.search, color: mainIconColor),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: mainIconColor), // Change border color here
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: mainIconColor), // Change focused border color here
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                  ),
+                ),
+
+                IconButton(
+
+                  icon: Icon(Icons.filter_list, color: mainIconColor),
+                  onPressed: () {
+                    showModalBottomSheet(
+
+                      backgroundColor: dialogBackgroundColor,
+                      context: context,
+
+                      builder: (context) {
+
+                        return Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "Filter",
+                                style: TextStyle(
+                                  color: dialogTextColor,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  "Filter by Tags",
+                                  style: TextStyle(
+                                    color: dialogTextColor,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              MultiSelectDialogField(
+                                items: noteTags.map((tag) => MultiSelectItem<String>(tag, tag)).toList(),
+                                title: Text(
+                                  'Tags',
+                                  style: TextStyle(
+                                    color: mainAppBarBackgroundColor,
+                                  ),
+                                ),
+                                selectedColor: mainAppBarBackgroundColor,
+                                unselectedColor: mainAppBarBackgroundColor,
+                                checkColor: mainAppBarBackgroundColor,
+                                backgroundColor: mainBackgroundColor,
+                                itemsTextStyle: TextStyle(
+                                  color: mainAppBarBackgroundColor,
+                                ),
+                                onConfirm: (results) {
+                                  setState(() {
+                                    selectedTags = results.cast<String>();
+                                  });
+                                },
+                                initialValue: selectedTags,
+                              ),
+                              const SizedBox(height: 12),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  "Filter by Groups",
+                                  style: TextStyle(
+                                    color: dialogTextColor,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              MultiSelectDialogField(
+                                items: groupsUser.map((group) => MultiSelectItem<String>(group, group)).toList(),
+                                title: Text(
+                                  'Groups',
+                                  style: TextStyle(
+                                    color: mainAppBarBackgroundColor,
+                                  ),
+                                ),
+                                selectedColor: mainAppBarBackgroundColor,
+                                unselectedColor: mainAppBarBackgroundColor,
+                                checkColor: mainAppBarBackgroundColor,
+                                backgroundColor: mainBackgroundColor,
+                                itemsTextStyle: TextStyle(
+                                  color: mainAppBarBackgroundColor,
+                                ),
+                                onConfirm: (results) {
+                                  setState(() {
+                                    selectedTags = results.cast<String>();
+                                  });
+                                },
+                                initialValue: selectedGroups,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -343,7 +518,9 @@ class _NotesListPageState extends State<NotesListPage> {
                   currentUser?.uid ?? '', groupsUser),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(child: CircularProgressIndicator(
+                    color: loadingIndicatorColor,
+                  ));
                 } else if (snapshot.hasError) {
                   return const Center(child: Text("Error loading notes"));
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -391,8 +568,10 @@ class _NotesListPageState extends State<NotesListPage> {
                         builder: (context, tagSnapshot) {
                           if (tagSnapshot.connectionState ==
                               ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: loadingIndicatorColor,
+                              ),
                             );
                           } else {
                             List<String> noteTags =
@@ -401,6 +580,7 @@ class _NotesListPageState extends State<NotesListPage> {
                             List<String>.from(data['note_groups'] ?? []);
 
                             return Card(
+                              color: listItemBackgroundColor,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -410,9 +590,11 @@ class _NotesListPageState extends State<NotesListPage> {
                                 contentPadding: const EdgeInsets.all(12),
                                 title: Text(
                                   noteTitle,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: TextStyle(fontWeight: FontWeight.bold, color:dialogTextColor),
                                 ),
-                                subtitle: Text(noteContent),
+                                subtitle: Text(noteContent,
+                                  style: TextStyle(fontWeight: FontWeight.bold, color:dialogTextColor),
+                                ),
                                 trailing: currentUser!.uid == noteCreatedBy
                                     ? Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -420,9 +602,9 @@ class _NotesListPageState extends State<NotesListPage> {
                                     IconButton(
                                       onPressed: () =>
                                           openNoteBox(docID: docID),
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.edit,
-                                        color: Colors.deepPurple,
+                                        color: mainIconColor,
                                       ),
                                     ),
                                     IconButton(
@@ -443,26 +625,40 @@ class _NotesListPageState extends State<NotesListPage> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
+                                      backgroundColor: dialogBackgroundColor,
                                       title: Text(
                                         noteTitle,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,color:mainAppBarBackgroundColor),
+
                                       ),
                                       content: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text("Content: $noteContent"),
+                                          Text("Content: $noteContent",
+                                            style: TextStyle(
+                                                color:dialogTextColor),
+                                          ),
                                           const SizedBox(height: 8),
-                                          Text("Tags: ${noteTags.join(', ')}"),
+                                          Text("Tags: ${noteTags.join(', ')}",
+                                            style: TextStyle(
+                                                color:dialogTextColor),
+                                          ),
                                           const SizedBox(height: 8),
-                                          Text("Groups: ${noteGroups.join(', ')}"),
+                                          Text("Groups: ${noteGroups.join(', ')}",
+                                            style: TextStyle(
+                                                color:dialogTextColor),
+                                          ),
                                         ],
                                       ),
                                       actions: [
                                         TextButton(
                                           onPressed: () => Navigator.pop(context),
-                                          child: const Text("Close"),
+                                          child: Text("Close",
+                                            style: TextStyle(
+                                                color:dialogTextColor),
+                                          ),
                                         ),
                                       ],
                                     ),
