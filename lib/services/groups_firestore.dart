@@ -6,6 +6,8 @@ class GroupService {
       FirebaseFirestore.instance.collection('groups');
   final CollectionReference users =
       FirebaseFirestore.instance.collection('users');
+  final CollectionReference notes =
+      FirebaseFirestore.instance.collection('notes');
 
   Future<void> addGroup(String group) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -34,22 +36,85 @@ class GroupService {
     return groups.orderBy('timestamp', descending: true).snapshots();
   }
 
-  Future<void> updateGroup(String docID, String newGroup) {
+  Future<void> updateGroup(String docID, String newGroup) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      return groups.doc(docID).update({
-        'group': newGroup,
-        'timestamp': Timestamp.now(),
-      });
+      // Fetch the current group document using docID
+      final groupDoc = await groups.doc(docID).get();
+      if (groupDoc.exists) {
+        // Cast the data to a Map<String, dynamic>
+        final data = groupDoc.data() as Map<String, dynamic>;
+        final oldGroup = data['group'];
+
+        // Start a Firestore batch write
+        final batch = FirebaseFirestore.instance.batch();
+
+        // Update the group document
+        batch.update(groupDoc.reference, {
+          'group': newGroup,
+          'timestamp': Timestamp.now(),
+        });
+
+        // Get all notes that contain the old group name in the note_groups array
+        final notesSnapshot = await FirebaseFirestore.instance
+            .collection('notes')
+            .where('note_groups', arrayContains: oldGroup)
+            .get();
+
+        // Update each note to replace the old group name with the new group name
+        for (var noteDoc in notesSnapshot.docs) {
+          List<dynamic> noteGroups = noteDoc.data()['note_groups'];
+          int index = noteGroups.indexOf(oldGroup);
+          if (index != -1) {
+            noteGroups[index] = newGroup;
+          }
+          batch.update(noteDoc.reference, {'note_groups': noteGroups});
+        }
+
+        // Commit the batch write
+        await batch.commit();
+      } else {
+        throw Exception("Group not found");
+      }
     } else {
       throw Exception("No user logged in");
     }
   }
 
-  Future<void> deleteGroup(String docID) {
+  Future<void> deleteGroup(String docID) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      return groups.doc(docID).delete();
+      // Fetch the current group document using docID
+      final groupDoc = await groups.doc(docID).get();
+      if (groupDoc.exists) {
+        // Cast the data to a Map<String, dynamic>
+        final data = groupDoc.data() as Map<String, dynamic>;
+        final groupName = data['group'];
+
+        // Start a Firestore batch write
+        final batch = FirebaseFirestore.instance.batch();
+
+        // Get all notes that contain the group name in the note_groups array
+        final notesSnapshot = await FirebaseFirestore.instance
+            .collection('notes')
+            .where('note_groups', arrayContains: groupName)
+            .get();
+
+        // Remove the group name from each note's note_groups array
+        for (var noteDoc in notesSnapshot.docs) {
+          List<dynamic> noteGroups = noteDoc.data()['note_groups'];
+          noteGroups.remove(groupName);
+          batch.update(noteDoc.reference, {'note_groups': noteGroups});
+        }
+
+        // Delete the group document
+        batch.delete(groupDoc.reference);
+
+        // Commit the batch write
+        await batch.commit();
+      } else {
+        throw Exception("Group not found");
+      }
     } else {
       throw Exception("No user logged in");
     }
